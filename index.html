@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>چک‌لیست جهیزیه</title>
+<style>
+:root{--bg:#faf7f5;--card:#fff;--tx:#2b2326;--mut:#8a7f84;--ac:#c2456b;--bd:#eadfe2;--ok:#3f9d6b;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1719;--card:#262022;--tx:#f1e9ec;--mut:#a89da2;--ac:#e0698d;--bd:#3a3236;--ok:#58c08a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1719;--card:#262022;--tx:#f1e9ec;--mut:#a89da2;--ac:#e0698d;--bd:#3a3236;--ok:#58c08a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Vazirmatn,Tahoma,"Segoe UI",sans-serif;line-height:1.7}
+.wrap{max-width:640px;margin:0 auto;padding:16px 14px 60px}
+h1{font-size:22px;margin:8px 0 4px}
+.sub{color:var(--mut);font-size:13px;margin:0 0 12px}
+.prog{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:8px 0;z-index:5}
+.bar{height:10px;border-radius:99px;background:var(--bd);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.pt{font-size:13px;color:var(--mut);margin-top:4px}
+.cat{background:var(--card);border:1px solid var(--bd);border-radius:14px;margin:12px 0;overflow:hidden}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:700;cursor:pointer}
+.ch small{color:var(--mut);font-weight:400}
+.items{border-top:1px solid var(--bd)}
+.it{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bd)}
+.it:last-child{border-bottom:0}
+.it input[type=checkbox]{width:22px;height:22px;accent-color:var(--ok);flex:none}
+.it span{flex:1}
+.it.done span{text-decoration:line-through;color:var(--mut)}
+.ib{background:none;border:0;color:var(--mut);font-size:16px;padding:4px 6px;cursor:pointer}
+.add{display:flex;gap:8px;padding:10px 14px}
+.add input{flex:1;padding:9px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+.add button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:0 16px;font:inherit;cursor:pointer}
+.msg{text-align:center;color:var(--mut);padding:30px 0}
+.ro{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--mut);margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🏠 چک‌لیست جهیزیه</h1>
+<p class="sub">می‌تونی تیک بزنی، اضافه، ویرایش یا حذف کنی؛ تغییرات روی همین دستگاه ذخیره می‌شه.</p>
+<div class="prog"><div class="bar"><i id="bar"></i></div><div class="pt" id="pt"></div></div>
+<div id="list"></div>
+</div>
+<script>
+(function(){
+var st={}, cats={}, open={}, listEl=document.getElementById('list');
+function fa(n){return String(n).replace(/\d/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'[d]})}
+function toast(m){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));background:#333;color:#fff;padding:10px 14px;border-radius:12px;text-align:center;z-index:99;font-size:14px';document.body.appendChild(t)}t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},4000)}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(cats));toast('ذخیره شد ✓')}catch(e){toast('ذخیره روی این دستگاه ممکن نیست')}
+}
+function render(){
+  var ids=Object.keys(cats).sort(function(a,b){return cats[a].order-cats[b].order});
+  listEl.textContent='';
+  if(!ids.length){var m=el('div','msg','هنوز موردی ثبت نشده است.');listEl.appendChild(m);}
+  var total=0,done=0;
+  ids.forEach(function(id){
+    var c=cats[id],its=c.items||[];
+    var d=its.filter(function(i){return i.done}).length;
+    total+=its.length;done+=d;
+    var box=el('div','cat');
+    var h=el('div','ch');
+    h.appendChild(el('span','',(c.emoji||'')+' '+c.title));
+    h.appendChild(el('small','',fa(d)+' از '+fa(its.length)+(open[id]===false?' ◂':' ▾')));
+    h.onclick=function(){open[id]=(open[id]===false);render()};
+    box.appendChild(h);
+    if(open[id]!==false){
+      var w=el('div','items');
+      its.forEach(function(it,idx){
+        var r=el('div','it'+(it.done?' done':''));
+        var cb=document.createElement('input');cb.type='checkbox';cb.checked=!!it.done;
+        cb.style.pointerEvents='none';cb.tabIndex=-1;r.style.cursor='pointer';r.onclick=function(e){var t=e.target.tagName;if(t==='BUTTON'||(t==='INPUT'&&e.target!==cb))return;if(st.e===it.id)return;it.done=!it.done;save();render()};
+        r.appendChild(cb);
+        if(st.e===it.id){
+          var ti=document.createElement('input');ti.value=it.name;ti.style.cssText='flex:1;min-width:0;padding:6px 8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit';
+          var ok=el('button','ib','✔');
+          ok.onclick=function(){var v=ti.value.trim();if(v){it.name=v;save()}st.e=null;render()};
+          ti.onkeydown=function(e){if(e.key==='Enter')ok.onclick()};
+          r.appendChild(ti);r.appendChild(ok);
+        }else{
+          r.appendChild(el('span','',it.name));
+          var ed=el('button','ib','✎');ed.onclick=function(){st.e=it.id;st.d=null;render()};
+          var rm=el('button','ib',st.d===it.id?'حذف؟':'✕');
+          rm.onclick=function(){if(st.d===it.id){its.splice(idx,1);st.d=null;save()}else{st.d=it.id}render()};
+          r.appendChild(ed);r.appendChild(rm);
+        }
+        w.appendChild(r);
+      });
+      var a=el('div','add');
+      var inp=document.createElement('input');inp.placeholder='افزودن مورد جدید…';
+      var bt=el('button','','افزودن');
+      function go(){var v=inp.value.trim();if(!v)return;c.items=c.items||[];c.items.push({id:'n'+Date.now(),name:v,done:false});save();render()}
+      bt.onclick=go;inp.onkeydown=function(e){if(e.key==='Enter')go()};
+      a.appendChild(inp);a.appendChild(bt);w.appendChild(a);box.appendChild(w);
+    }
+    listEl.appendChild(box);
+  });
+  var p=total?Math.round(done/total*100):0;
+  document.getElementById('bar').style.width=p+'%';
+  document.getElementById('pt').textContent=total?(fa(done)+' از '+fa(total)+' مورد تهیه شده ('+fa(p)+'٪)'):'';
+}
+var KEY='jahizieh_v1';
+var DEFAULT={"c01": {"order": 1, "title": "لوازم بزرگ آشپزخونه", "emoji": "🔸️", "items": [{"id": "u1_1", "name": "یخچال", "done": false}, {"id": "u1_2", "name": "ظرفشویی", "done": false}, {"id": "u1_3", "name": "لباسشویی", "done": false}, {"id": "u1_4", "name": "اجاق گاز", "done": false}, {"id": "u1_5", "name": "چای ساز و کتری برقی و ...", "done": false}, {"id": "u1_6", "name": "سولاردوم(فر، ماکروفر، سرخ کن، گریل، بخارپز، ایرفرایر)", "done": false}, {"id": "u1_7", "name": "غذاساز(رنده برقی، مخلوط‌کن، همزن، آبمیوه‌گیری، چرخ گوشت)", "done": false}, {"id": "u1_8", "name": "مولتی کوکر(آرام پز، هواپز، زودپز، پلوپز، بخارپز)", "done": false}, {"id": "u1_9", "name": "گوشت کوب برقی", "done": false}]}, "c02": {"order": 2, "title": "ظروف و لوازم آشپزخونه", "emoji": "🔸️", "items": [{"id": "u2_1", "name": "سرویس قابلمه و تابه", "done": false}, {"id": "u2_2", "name": "سرویس غذاخوری", "done": false}, {"id": "u2_3", "name": "بشقاب میوه خوری", "done": false}, {"id": "u2_4", "name": "پیاله", "done": false}, {"id": "u2_5", "name": "دیس", "done": false}, {"id": "u2_6", "name": "ظروف پذیرایی(شیرینی خوری، آجیل خوری، سالاد خوری، شکلات خوری و ‌‌‌اردوخوری، بستنی خوری و ...)", "done": false}, {"id": "u2_7", "name": "قندان", "done": false}, {"id": "u2_8", "name": "نمکدون و فلفل‌ساب", "done": false}, {"id": "u2_9", "name": "سرویس قاشق و چنگال", "done": false}, {"id": "u2_10", "name": "سرویس ملاقه و کفگیر", "done": false}, {"id": "u2_11", "name": "سرویس پارچ و لیوان", "done": false}, {"id": "u2_12", "name": "سرویس چای خوری(فنجون و ...)", "done": false}, {"id": "u2_13", "name": "سرویس کاسه(کاسه ماست و ترشی و سوپ خوری و ...)", "done": false}, {"id": "u2_14", "name": "سینی", "done": false}, {"id": "u2_15", "name": "تابه گریل", "done": false}, {"id": "u2_16", "name": "شیرجوش", "done": false}, {"id": "u2_17", "name": "کتری و قوری", "done": false}, {"id": "u2_18", "name": "ظروف پیرکس", "done": false}, {"id": "u2_19", "name": "قاشق چوبی", "done": false}, {"id": "u2_20", "name": "انبر آشپزی و سالاد و یخ", "done": false}, {"id": "u2_21", "name": "پوست‌کن", "done": false}, {"id": "u2_22", "name": "رنده", "done": false}, {"id": "u2_23", "name": "قیچی آشپزخونه", "done": false}, {"id": "u2_24", "name": "سرویس کارد و چاقو", "done": false}, {"id": "u2_25", "name": "تخته برش", "done": false}, {"id": "u2_26", "name": "ساطور", "done": false}, {"id": "u2_27", "name": "همزن دستی", "done": false}, {"id": "u2_28", "name": "اَلَک", "done": false}, {"id": "u2_29", "name": "پیمانه", "done": false}, {"id": "u2_30", "name": "آبکش", "done": false}, {"id": "u2_31", "name": "صافی", "done": false}, {"id": "u2_32", "name": "تفاله‌گیر", "done": false}, {"id": "u2_33", "name": "گردوشکن", "done": false}, {"id": "u2_34", "name": "دربازکن", "done": false}, {"id": "u2_35", "name": "هاون", "done": false}, {"id": "u2_36", "name": "سبد نان", "done": false}, {"id": "u2_37", "name": "سبد میوه و سبزی", "done": false}, {"id": "u2_38", "name": "زیر قابلمه ای", "done": false}, {"id": "u2_39", "name": "دستگیره", "done": false}, {"id": "u2_40", "name": "دَم‌کنی", "done": false}, {"id": "u2_41", "name": "پیشبند و دستکش", "done": false}, {"id": "u2_42", "name": "شعله پخش‌کن", "done": false}, {"id": "u2_43", "name": "ترازو آشپزخونه", "done": false}]}, "c03": {"order": 3, "title": "نظم دهی", "emoji": "🔸️", "items": [{"id": "u3_1", "name": "بانکه حبوبات و قند و شکر و چای و ...", "done": false}, {"id": "u3_2", "name": "جاادویه‌ای", "done": false}, {"id": "u3_3", "name": "جاقاشقی", "done": false}, {"id": "u3_4", "name": "ظرف برنج", "done": false}, {"id": "u3_5", "name": "ظروف فریزری", "done": false}, {"id": "u3_6", "name": "سبد سیب زمینی و پیاز", "done": false}]}, "c04": {"order": 4, "title": "لوازم نشیمن", "emoji": "🔸️", "items": [{"id": "u4_1", "name": "مبل", "done": false}, {"id": "u4_2", "name": "میز جلو مبلی", "done": false}, {"id": "u4_3", "name": "کوسن", "done": false}, {"id": "u4_4", "name": "میز عسلی", "done": false}, {"id": "u4_5", "name": "تلویزیون", "done": false}, {"id": "u4_6", "name": "میز تلویزیون", "done": false}, {"id": "u4_7", "name": "رسیور ماهواره", "done": false}, {"id": "u4_8", "name": "میز ناهارخوری", "done": false}, {"id": "u4_9", "name": "میز و آینه کنسول", "done": false}, {"id": "u4_10", "name": "جاکفشی", "done": false}, {"id": "u4_11", "name": "فرش(شایدم روفرشی)", "done": false}, {"id": "u4_12", "name": "پرده", "done": false}, {"id": "u4_13", "name": "لوستر", "done": false}, {"id": "u4_14", "name": "ساعت", "done": false}, {"id": "u4_15", "name": "تابلو", "done": false}, {"id": "u4_16", "name": "گلدان", "done": false}]}, "c05": {"order": 5, "title": "اتاق خواب", "emoji": "🔸️", "items": [{"id": "u5_1", "name": "تخت", "done": false}, {"id": "u5_2", "name": "تشک", "done": false}, {"id": "u5_3", "name": "میز و صندلی آرایش", "done": false}, {"id": "u5_4", "name": "فرش", "done": false}, {"id": "u5_5", "name": "پرده", "done": false}, {"id": "u5_6", "name": "آباژور", "done": false}, {"id": "u5_7", "name": "بالش", "done": false}, {"id": "u5_8", "name": "روتختی", "done": false}, {"id": "u5_9", "name": "روبالشی", "done": false}, {"id": "u5_10", "name": "لحاف", "done": false}, {"id": "u5_11", "name": "پتو", "done": false}, {"id": "u5_12", "name": "چوب لباسی", "done": false}]}, "c06": {"order": 6, "title": "شست‌وشو و تمیزی", "emoji": "🔸️", "items": [{"id": "u6_1", "name": "جاروبرقی", "done": false}, {"id": "u6_2", "name": "اتو بخار", "done": false}, {"id": "u6_3", "name": "سشوار", "done": false}, {"id": "u6_4", "name": "ماشین اصلاح", "done": false}, {"id": "u6_5", "name": "تی زمین‌شوی", "done": false}, {"id": "u6_6", "name": "بند رخت", "done": false}, {"id": "u6_7", "name": "گیره لباس", "done": false}, {"id": "u6_8", "name": "سبد لباس چرک", "done": false}]}, "c07": {"order": 7, "title": "سرویس بهداشتی", "emoji": "🔸️", "items": [{"id": "u7_1", "name": "حوله(حموم، دستی، استخری و ...)", "done": false}, {"id": "u7_2", "name": "تن پوش", "done": false}, {"id": "u7_3", "name": "پادری", "done": false}, {"id": "u7_4", "name": "دمپایی حموم و دستشویی", "done": false}, {"id": "u7_5", "name": "سطل زباله", "done": false}, {"id": "u7_6", "name": "ست سرویس بهداشتی(جامسواکی و مایع و...)", "done": false}, {"id": "u7_7", "name": "ست نظافت سرویس بهداشتی(فرچه و...)", "done": false}, {"id": "u7_8", "name": "تَشت و ...", "done": false}]}, "c08": {"order": 8, "title": "سایر", "emoji": "🔸️", "items": [{"id": "u8_1", "name": "جادستمالی و سطل زباله", "done": false}, {"id": "u8_2", "name": "جعبه ابزار(چکش، متر، فازمتر پیچ‌گوشتی، انبردست، چسب نواری، چسب برق، میخ و...)", "done": false}, {"id": "u8_3", "name": "چندراهی و سیم درازکن", "done": false}, {"id": "u8_4", "name": "محافظ برق", "done": false}, {"id": "u8_5", "name": "چراغ قوه شارژی", "done": false}, {"id": "u8_6", "name": "جعبه خیاطی(نخ و سوزن و قیچی و سنجاق و ...)", "done": false}, {"id": "u8_7", "name": "چارپایه یا نردبان تاشو", "done": false}]}};
+try{var raw=localStorage.getItem(KEY);cats=raw?JSON.parse(raw):null}catch(e){cats=null}
+if(!cats||typeof cats!=='object')cats=JSON.parse(JSON.stringify(DEFAULT));
+render();
+})();
+</script>
+</body>
+</html>
